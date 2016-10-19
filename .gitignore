@@ -12,3 +12,5 @@ Common/bin/
 WinControls/Explorer Tree/bin/
 *.eof
 WinControls/Properties/licenses.licx
+/bin
+/obj
