@@ -12,6 +12,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 		public string ToConnectionString { get; set; }
 		public string FromDatabase { get; set; }
 		public string ToDatabase { get; set; }
+        public string FromDriver { get; set; }
+        public string ToDriver { get; set; }
 
 		public List<SerializableTableWorkspace> SelectedTableWorkspaces { get; set; }
 		public List<SerializableObjectWorkspace> SelectedObjectWorkspaces { get; set; }

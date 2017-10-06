@@ -69,7 +69,6 @@
 			this.selectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.selectTop1000ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.setBatchSizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.diffTables = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
 			this.tabObjects = new System.Windows.Forms.TabPage();
 			this.splitContainer3 = new System.Windows.Forms.SplitContainer();
 			this.gridObjects = new System.Windows.Forms.DataGridView();
@@ -77,18 +76,21 @@
 			this.ObjectType = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.ProgTargetObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.dataGridViewCheckBoxColumn2 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-			this.diffObjects = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
 			this.tabDrop = new System.Windows.Forms.TabPage();
 			this.splitContainer2 = new System.Windows.Forms.SplitContainer();
 			this.gridDropObjects = new System.Windows.Forms.DataGridView();
 			this.dataGridViewTextBoxColumn3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.ObjectType2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.dataGridViewCheckBoxColumn1 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-			this.diffDrops = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
 			this.menuStrip1 = new System.Windows.Forms.MenuStrip();
 			this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cboSourceDriver = new System.Windows.Forms.ComboBox();
+            this.cboTargetDriver = new System.Windows.Forms.ComboBox();
+            this.diffTables = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
+            this.diffObjects = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
+            this.diffDrops = new PaJaMa.DatabaseStudio.Compare.ucDifferences();
 			this.panel1.SuspendLayout();
 			this.panel2.SuspendLayout();
 			this.tabMain.SuspendLayout();
@@ -116,6 +118,8 @@
 			// 
 			// panel1
 			// 
+            this.panel1.Controls.Add(this.cboTargetDriver);
+            this.panel1.Controls.Add(this.cboSourceDriver);
 			this.panel1.Controls.Add(this.btnTargetQuery);
 			this.panel1.Controls.Add(this.btnSourceQuery);
 			this.panel1.Controls.Add(this.btnSwitch);
@@ -260,7 +264,7 @@
 			this.cboTarget.FormattingEnabled = true;
 			this.cboTarget.Location = new System.Drawing.Point(142, 39);
 			this.cboTarget.Name = "cboTarget";
-			this.cboTarget.Size = new System.Drawing.Size(551, 21);
+            this.cboTarget.Size = new System.Drawing.Size(419, 21);
 			this.cboTarget.TabIndex = 8;
 			this.cboTarget.SelectedIndexChanged += new System.EventHandler(this.cboConnString_SelectedIndexChanged);
 			// 
@@ -280,7 +284,7 @@
 			this.cboSource.FormattingEnabled = true;
 			this.cboSource.Location = new System.Drawing.Point(142, 12);
 			this.cboSource.Name = "cboSource";
-			this.cboSource.Size = new System.Drawing.Size(551, 21);
+            this.cboSource.Size = new System.Drawing.Size(419, 21);
 			this.cboSource.TabIndex = 6;
 			this.cboSource.SelectedIndexChanged += new System.EventHandler(this.cboConnString_SelectedIndexChanged);
 			// 
@@ -552,16 +556,6 @@
 			this.setBatchSizeToolStripMenuItem.Visible = false;
 			this.setBatchSizeToolStripMenuItem.Click += new System.EventHandler(this.setBatchSizeToolStripMenuItem_Click);
 			// 
-			// diffTables
-			// 
-			this.diffTables.CompareHelper = null;
-			this.diffTables.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.diffTables.Location = new System.Drawing.Point(0, 0);
-			this.diffTables.Name = "diffTables";
-			this.diffTables.Size = new System.Drawing.Size(296, 482);
-			this.diffTables.TabIndex = 0;
-			this.diffTables.Workspace = null;
-			// 
 			// tabObjects
 			// 
 			this.tabObjects.Controls.Add(this.splitContainer3);
@@ -641,16 +635,6 @@
 			this.dataGridViewCheckBoxColumn2.HeaderText = "Select";
 			this.dataGridViewCheckBoxColumn2.Name = "dataGridViewCheckBoxColumn2";
 			// 
-			// diffObjects
-			// 
-			this.diffObjects.CompareHelper = null;
-			this.diffObjects.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.diffObjects.Location = new System.Drawing.Point(0, 0);
-			this.diffObjects.Name = "diffObjects";
-			this.diffObjects.Size = new System.Drawing.Size(303, 482);
-			this.diffObjects.TabIndex = 0;
-			this.diffObjects.Workspace = null;
-			// 
 			// tabDrop
 			// 
 			this.tabDrop.Controls.Add(this.splitContainer2);
@@ -717,16 +701,6 @@
 			this.dataGridViewCheckBoxColumn1.HeaderText = "Select";
 			this.dataGridViewCheckBoxColumn1.Name = "dataGridViewCheckBoxColumn1";
 			// 
-			// diffDrops
-			// 
-			this.diffDrops.CompareHelper = null;
-			this.diffDrops.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.diffDrops.Location = new System.Drawing.Point(0, 0);
-			this.diffDrops.Name = "diffDrops";
-			this.diffDrops.Size = new System.Drawing.Size(297, 482);
-			this.diffDrops.TabIndex = 1;
-			this.diffDrops.Workspace = null;
-			// 
 			// menuStrip1
 			// 
 			this.menuStrip1.BackColor = System.Drawing.Color.Transparent;
@@ -761,6 +735,58 @@
 			this.saveToolStripMenuItem.Text = "&Save";
 			this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
 			// 
+            // cboSourceDriver
+            // 
+            this.cboSourceDriver.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cboSourceDriver.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboSourceDriver.FormattingEnabled = true;
+            this.cboSourceDriver.Location = new System.Drawing.Point(567, 12);
+            this.cboSourceDriver.Name = "cboSourceDriver";
+            this.cboSourceDriver.Size = new System.Drawing.Size(126, 21);
+            this.cboSourceDriver.TabIndex = 18;
+            this.cboSourceDriver.Format += new System.Windows.Forms.ListControlConvertEventHandler(this.cboDriver_Format);
+            // 
+            // cboTargetDriver
+            // 
+            this.cboTargetDriver.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cboTargetDriver.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboTargetDriver.FormattingEnabled = true;
+            this.cboTargetDriver.Location = new System.Drawing.Point(567, 39);
+            this.cboTargetDriver.Name = "cboTargetDriver";
+            this.cboTargetDriver.Size = new System.Drawing.Size(126, 21);
+            this.cboTargetDriver.TabIndex = 19;
+            this.cboTargetDriver.Format += new System.Windows.Forms.ListControlConvertEventHandler(this.cboDriver_Format);
+            // 
+            // diffTables
+            // 
+            this.diffTables.CompareHelper = null;
+            this.diffTables.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.diffTables.Location = new System.Drawing.Point(0, 0);
+            this.diffTables.Name = "diffTables";
+            this.diffTables.Size = new System.Drawing.Size(296, 482);
+            this.diffTables.TabIndex = 0;
+            this.diffTables.Workspace = null;
+            // 
+            // diffObjects
+            // 
+            this.diffObjects.CompareHelper = null;
+            this.diffObjects.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.diffObjects.Location = new System.Drawing.Point(0, 0);
+            this.diffObjects.Name = "diffObjects";
+            this.diffObjects.Size = new System.Drawing.Size(303, 482);
+            this.diffObjects.TabIndex = 0;
+            this.diffObjects.Workspace = null;
+            // 
+            // diffDrops
+            // 
+            this.diffDrops.CompareHelper = null;
+            this.diffDrops.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.diffDrops.Location = new System.Drawing.Point(0, 0);
+            this.diffDrops.Name = "diffDrops";
+            this.diffDrops.Size = new System.Drawing.Size(297, 482);
+            this.diffDrops.TabIndex = 1;
+            this.diffDrops.Workspace = null;
+            // 
 			// ucCompare
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -771,6 +797,7 @@
 			this.Controls.Add(this.menuStrip1);
 			this.Name = "ucCompare";
 			this.Size = new System.Drawing.Size(1065, 639);
+            this.Load += new System.EventHandler(this.ucCompare_Load);
 			this.panel1.ResumeLayout(false);
 			this.panel1.PerformLayout();
 			this.panel2.ResumeLayout(false);
@@ -863,6 +890,8 @@
 		private System.Windows.Forms.DataGridViewTextBoxColumn TransferBatchSize;
 		private System.Windows.Forms.DataGridViewButtonColumn DataDetails;
 		private System.Windows.Forms.ToolStripMenuItem setBatchSizeToolStripMenuItem;
+        private System.Windows.Forms.ComboBox cboTargetDriver;
+        private System.Windows.Forms.ComboBox cboSourceDriver;
 	}
 }
 

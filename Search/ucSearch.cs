@@ -73,7 +73,7 @@ namespace PaJaMa.DatabaseStudio.Search
 					return;
 				}
 
-				_searchHelper = new SearchHelper(connString, worker);
+				_searchHelper = new SearchHelper(typeof(SqlConnection), connString, worker);
 			};
 
 			WinControls.WinProgressBox.ShowProgress(worker, progressBarStyle: ProgressBarStyle.Marquee);

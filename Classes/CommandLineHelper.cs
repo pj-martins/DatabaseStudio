@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace PaJaMa.DatabaseStudio.Classes
 {
@@ -28,7 +29,8 @@ namespace PaJaMa.DatabaseStudio.Classes
 
 						if (selectedWorkspaces.Any())
 						{
-							var compareHelper = new CompareHelper(compareWorkspace.FromConnectionString, compareWorkspace.ToConnectionString, null);
+                            // TODO:
+							var compareHelper = new CompareHelper(typeof(SqlConnection), typeof(SqlConnection), compareWorkspace.FromConnectionString, compareWorkspace.ToConnectionString, null);
 							List<TableWorkspace> workspaces = new List<TableWorkspace>();
 							foreach (var ws in selectedWorkspaces)
 							{

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,7 +34,11 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		{
 			var constraints = new List<KeyConstraint>();
 
-			string qry = database.Is2000OrLess ? @"
+            string qry = string.Empty;
+
+            if (connection is SqlConnection)
+            {
+                qry = database.Is2000OrLess ? @"
 select ku.CONSTRAINT_NAME as ConstraintName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as Ordinal, 
 	ku.TABLE_NAME as TableName, tc.TABLE_SCHEMA as SchemaName, 'CLUSTERED' as ClusteredNonClustered, convert(bit, 1) as IsPrimaryKey, convert(bit, 0) as Descending
 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
@@ -54,6 +59,21 @@ join sys.index_columns ic on ic.object_id = t.object_id
 join sys.columns c on c.column_id = ic.column_id and c.object_id = ic.object_id
 join sys.indexes i on i.index_id = ic.index_id and i.object_id = ic.object_id
 ";
+            }
+            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            {
+                qry = @"
+select ku.CONSTRAINT_NAME as ConstraintName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as Ordinal, 
+	ku.TABLE_NAME as TableName, tc.TABLE_SCHEMA as SchemaName, 'CLUSTERED' as ClusteredNonClustered, true as IsPrimaryKey, false as Descending
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
+INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS ku
+ON tc.CONSTRAINT_TYPE = 'PRIMARY KEY' 
+AND tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME
+and ku.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+";
+            }
+            else
+                throw new NotImplementedException();
 
 			using (var cmd = connection.CreateCommand())
 			{

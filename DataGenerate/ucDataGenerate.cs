@@ -78,7 +78,8 @@ namespace PaJaMa.DatabaseStudio.DataGenerate
 					return;
 				}
 
-				_generatorHelper = new GeneratorHelper(connString, worker);
+                // TODO:
+				_generatorHelper = new GeneratorHelper(typeof(SqlConnection), connString, worker);
 			};
 
 			WinControls.WinProgressBox.ShowProgress(worker, progressBarStyle: ProgressBarStyle.Marquee);

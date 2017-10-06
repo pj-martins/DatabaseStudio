@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,7 +38,10 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		{
 			var foreignKeys = new List<ForeignKey>();
 
-			string foreignKeyQuery = database.Is2000OrLess ? @"
+            string foreignKeyQuery = string.Empty;
+            if (connection is SqlConnection)
+            {
+                foreignKeyQuery = database.Is2000OrLess ? @"
 select fk.CONSTRAINT_NAME as ForeignKeyName, fk.TABLE_NAME as ChildTableName, cc.COLUMN_NAME as ChildColumnName, 
 	tc.TABLE_NAME as ParentTableName, tcc.COLUMN_NAME as ParentColumnName, UPDATE_RULE as UpdateRule, DELETE_RULE as DeleteRule,
 	WithCheck = case when OBJECTPROPERTY(OBJECT_ID(QUOTENAME(c.CONSTRAINT_SCHEMA) + '.' + QUOTENAME(c.CONSTRAINT_NAME)), 'CnstIsNotTrusted') = 1 then 'NO' else '' end,
@@ -70,6 +74,27 @@ join sys.all_columns pc on pc.object_id = fkc.referenced_object_id
 	and pc.column_id = fkc.referenced_column_id
 join sys.schemas cs on cs.schema_id = ct.schema_id
 join sys.schemas ps on ps.schema_id = pt.schema_id";
+            }
+            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            {
+                foreignKeyQuery = @"
+SELECT
+    tc.constraint_name as ForeignKeyName, tc.table_name as ChildTableName, kcu.column_name as ChildColumnName, 
+    ccu.table_name AS ParentTableName, ccu.column_name AS ParentColumnName, UPDATE_RULE as UpdateRule, DELETE_RULE as DeleteRule,
+	tc.CONSTRAINT_SCHEMA as ParentTableSchema, tc.CONSTRAINT_SCHEMA as ChildTableSchema 
+FROM 
+    information_schema.table_constraints AS tc 
+JOIN information_schema.key_column_usage AS kcu
+	ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+	ON ccu.constraint_name = tc.constraint_name
+join INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS c on c.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+	and c.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+WHERE constraint_type = 'FOREIGN KEY'
+";
+            }
+            else
+                throw new NotImplementedException();
 
 			using (var fromCmd = connection.CreateCommand())
 			{

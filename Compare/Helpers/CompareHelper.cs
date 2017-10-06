@@ -24,18 +24,18 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
         public Database FromDatabase { get; private set; }
         public Database ToDatabase { get; private set; }
 
-        public CompareHelper(string fromConnectionString, string toConnectionString, BackgroundWorker worker)
+		public CompareHelper(Type fromDriverType, Type toDriverType, string fromConnectionString, string toConnectionString, BackgroundWorker worker)
         {
-            FromDatabase = new Database(fromConnectionString);
-            ToDatabase = new Database(toConnectionString);
+			FromDatabase = new Database(fromDriverType, fromConnectionString);
+			ToDatabase = new Database(toDriverType, toConnectionString);
             FromDatabase.PopulateChildren(false, worker);
             ToDatabase.PopulateChildren(false, worker);
         }
 
         public void Init(BackgroundWorker worker)
         {
-            FromDatabase = new Database(FromDatabase.ConnectionString);
-            ToDatabase = new Database(ToDatabase.ConnectionString);
+			FromDatabase = new Database(FromDatabase.DriverType, FromDatabase.ConnectionString);
+			ToDatabase = new Database(ToDatabase.DriverType, ToDatabase.ConnectionString);
             FromDatabase.PopulateChildren(false, worker);
             ToDatabase.PopulateChildren(false, worker);
         }

@@ -16,15 +16,15 @@ namespace PaJaMa.DatabaseStudio.DataGenerate.Helper
 	public class GeneratorHelper
 	{
 		public Database Database { get; set; }
-		public GeneratorHelper(string connectionString, BackgroundWorker worker)
+		public GeneratorHelper(Type driverType, string connectionString, BackgroundWorker worker)
 		{
-			Database = new Database(connectionString);
+			Database = new Database(driverType, connectionString);
 			Database.PopulateChildren(true, worker);
 		}
 
 		public void Init(BackgroundWorker worker)
 		{
-			Database = new Database(Database.ConnectionString);
+			Database = new Database(Database.DriverType, Database.ConnectionString);
 			Database.PopulateChildren(true, worker);
 		}
 

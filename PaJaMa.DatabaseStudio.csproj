@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PaJaMa.DatabaseStudio</RootNamespace>
     <AssemblyName>DatabaseStudio</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
@@ -185,6 +185,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\CommandLineHelper.cs" />
+    <Compile Include="Classes\DriverHelper.cs" />
     <Compile Include="Classes\GridHelper.cs" />
     <Compile Include="Compare\Classes\DataDifference.cs" />
     <Compile Include="Compare\Workspaces\CompareWorkspace.cs" />
@@ -206,6 +207,7 @@
     <Compile Include="Compare\Classes\DatabaseObjectSynchronizationBase.cs" />
     <Compile Include="Compare\Classes\TableSynchronization.cs" />
     <Compile Include="Compare\Helpers\SynchronizationHelper.cs" />
+    <Compile Include="Compare\Workspaces\DatabaseWorkspace.cs" />
     <Compile Include="DatabaseObjects\View.cs" />
     <Compile Include="DataGenerate\Classes\ColumnWorkspace.cs" />
     <Compile Include="Classes\Events.cs" />
@@ -486,6 +488,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="Compare\Scripts\DatabaseCreate.sql" />
     <Content Include="Compare\Scripts\TestDatabase.sql" />
     <EmbeddedResource Include="DataGenerate\Content\State.txt" />

@@ -3,6 +3,7 @@ using PaJaMa.DatabaseStudio.Compare.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public bool IsNullable { get; set; }
 		public string Formula { get; set; }
 		public string ColumnDefault { get; set; }
-		public byte? NumericPrecision { get; set; }
+		public int? NumericPrecision { get; set; }
 		public int? NumericScale { get; set; }
 		public decimal? Increment { get; set; }
 
@@ -39,7 +40,12 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public static void PopulateColumnsForTable(Database database, DbConnection connection, List<ExtendedProperty> allExtendedProperties)
 		{
-			string lessQry = @"select co.TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
+            string query = string.Empty;
+            if (connection is SqlConnection)
+            {
+                if (database.Is2000OrLess)
+                {
+                    query = @"select co.TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
 	CHARACTER_MAXIMUM_LENGTH as CharacterMaximumLength, DATA_TYPE as DataType,
     IsNullable = convert(bit, case when UPPER(ltrim(rtrim(co.IS_NULLABLE))) = 'YES' then 1 else 0 end), convert(bit, COLUMNPROPERTY(object_id(TABLE_NAME), COLUMN_NAME, 'IsIdentity')) as IsIdentity, d.name as ConstraintName,
 	COLUMN_DEFAULT as ColumnDefault, null as Formula, NUMERIC_PRECISION as NumericPrecision, NUMERIC_SCALE as NumericScale,
@@ -56,11 +62,13 @@ left join
 ) d
 on d.colid = c.colid and d.parent_obj = t.id
 where t.xtype = 'U'";
-
-			string moreQry = @"select TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
+                }
+                else
+                {
+                    query = @"select TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
 	CHARACTER_MAXIMUM_LENGTH as CharacterMaximumLength, DATA_TYPE as DataType,
     IsNullable = convert(bit, case when UPPER(ltrim(rtrim(co.IS_NULLABLE))) = 'YES' then 1 else 0 end), convert(bit, COLUMNPROPERTY(object_id(co.TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity')) as IsIdentity, d.name as ConstraintName,
-	isnull(d.definition, COLUMN_DEFAULT) as ColumnDefault, cm.definition as Formula, NUMERIC_PRECISION as NumericPrecision, NUMERIC_SCALE as NumericScale,
+	isnull(d.definition, COLUMN_DEFAULT) as ColumnDefault, cm.definition as Formula, convert(int, NUMERIC_PRECISION) as NumericPrecision, NUMERIC_SCALE as NumericScale,
 	SchemaName = co.TABLE_SCHEMA, IDENT_INCR(co.TABLE_SCHEMA + '.' + TABLE_NAME) AS Increment
 from INFORMATION_SCHEMA.COLUMNS co
 join sys.all_columns c on c.name = co.column_name
@@ -70,12 +78,27 @@ join sys.schemas sc on sc.schema_id = t.schema_id
 	and sc.name = co.TABLE_SCHEMA
 left join sys.default_constraints d on d.object_id = c.default_object_id
 left join sys.computed_columns cm on cm.name = co.column_name and c.is_computed = 1 and cm.object_id = t.object_id";
+                }
+            }
+            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            {
+                query = @"
+select co.TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
+	CHARACTER_MAXIMUM_LENGTH as CharacterMaximumLength, DATA_TYPE as DataType,
+    case when UPPER(ltrim(rtrim(co.IS_NULLABLE))) = 'YES' then true else false end as IsNullable, case when is_identity = 'NO' then false else true end as IsIdentity,
+	COLUMN_DEFAULT as ColumnDefault, null as Formula, NUMERIC_PRECISION as NumericPrecision, NUMERIC_SCALE as NumericScale,
+	co.TABLE_SCHEMA as SchemaName
+from INFORMATION_SCHEMA.COLUMNS co
+join INFORMATION_SCHEMA.TABLES t on t.TABLE_NAME = co.TABLE_NAME
+where t.TABLE_TYPE = 'BASE TABLE'";
+            }
+            else
+                throw new NotImplementedException();
 
-			var qry = database.Is2000OrLess ? lessQry : moreQry;
 
 			using (var cmd = connection.CreateCommand())
 			{
-				cmd.CommandText = qry;
+				cmd.CommandText = query;
 				using (var rdr = cmd.ExecuteReader())
 				{
 					if (rdr.HasRows)

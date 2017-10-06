@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.SqlClient;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,8 +20,9 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public List<Credential> Credentials { get; private set; }
 		public string ConnectionString { get; private set; }
 		public bool Is2000OrLess { get; private set; }
+        public Type DriverType { get; private set; }
 
-		public Database(string connectionString)
+		public Database(Type driverType, string connectionString)
 		{
 			Schemas = new List<Schema>();
 			ServerLogins = new List<ServerLogin>();
@@ -29,8 +30,9 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 			Permissions = new List<Permission>();
 			Credentials = new List<Credential>();
 
-			using (var conn = new SqlConnection(connectionString))
+            using (var conn = Activator.CreateInstance(driverType) as DbConnection)
 			{
+                conn.ConnectionString = connectionString;
 				conn.Open();
 				var parts = conn.ServerVersion.Split('.');
 				if (Convert.ToInt16(parts[0]) <= 8)
@@ -38,23 +40,23 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 				DatabaseName = conn.Database;
 				DataSource = conn.DataSource;
 				conn.Close();
-				SqlConnection.ClearPool(conn);
 			}
 
+            DriverType = driverType;
 			ConnectionString = connectionString;
 		}
 
 		public void PopulateChildren(bool condensed, BackgroundWorker worker)
 		{
-			using (var conn = new SqlConnection(ConnectionString))
+			using (var conn = Activator.CreateInstance(DriverType) as DbConnection)
 			{
+                conn.ConnectionString = ConnectionString;
 				conn.Open();
 				var extendedProperties = ExtendedProperty.GetExtendedProperties(conn, Is2000OrLess);
 				Schema.PopulateSchemas(this, conn, extendedProperties);
 				Table.PopulateTables(this, conn, extendedProperties, worker);
 				DatabaseObjectBase.PopulateObjects(this, conn, extendedProperties, condensed, worker);
 				conn.Close();
-				SqlConnection.ClearPool(conn);
 			}
 		}
 
@@ -80,9 +82,14 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public void ChangeDatabase(string newDatabase)
 		{
-			var connBuilder = new SqlConnectionStringBuilder(ConnectionString);
+            if (DriverType == typeof(System.Data.SqlClient.SqlConnection))
+            {
+                var connBuilder = new System.Data.SqlClient.SqlConnectionStringBuilder(ConnectionString);
 			connBuilder.InitialCatalog = newDatabase;
 			ConnectionString = connBuilder.ConnectionString;
+            }
+            else
+                throw new NotImplementedException();
 		}
 
 		//public void Disconnect()

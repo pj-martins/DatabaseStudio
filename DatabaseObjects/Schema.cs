@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,7 +40,7 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public static void PopulateSchemas(Database database, DbConnection connection, List<ExtendedProperty> extendedProperties)
 		{
 			database.Schemas.Clear();
-			string qry = database.Is2000OrLess ? @"select distinct TABLE_SCHEMA as SchemaName, TABLE_SCHEMA as SchemaOwner from INFORMATION_SCHEMA.TABLES" :
+			string qry = database.Is2000OrLess || database.DriverType != typeof(SqlConnection) ? @"select distinct TABLE_SCHEMA as SchemaName, TABLE_SCHEMA as SchemaOwner from INFORMATION_SCHEMA.TABLES" :
 				@"select s.name as SchemaName, p.name as SchemaOwner
 				 from sys.schemas s
 				join sys.database_principals p on p.principal_id = s.principal_id

@@ -37,6 +37,9 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public static List<ExtendedProperty> GetExtendedProperties(DbConnection connection, bool is2000orLess)
 		{
+            if (!(connection is System.Data.SqlClient.SqlConnection))
+                return new List<ExtendedProperty>();
+
 			string qry = is2000orLess ? @"
 select name as PropName, value as PropValue, objtype as Level1Type, objname as Level1Object, null as Level2Type,
 	null as Level2Object, 'dbo' as ObjectSchema, convert(bit, 0) as IgnoreSchema

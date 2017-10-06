@@ -33,15 +33,7 @@ namespace PaJaMa.DatabaseStudio.Query
 
 		private void ucWorkspace_Load(object sender, EventArgs e)
 		{
-			List<Type> types = new List<Type>() {
-				typeof(System.Data.SqlClient.SqlConnection),
-				typeof(System.Data.OleDb.OleDbConnection),
-				typeof(System.Data.Odbc.OdbcConnection)
-			};
-
-			types.AddRange(ExternalTypes.GetExternalTypes());
-
-			cboServer.DataSource = types.ToArray();
+			cboServer.DataSource = DriverHelper.GetDatabaseTypes();
 
 			var settings = Properties.Settings.Default;
 
@@ -158,6 +150,11 @@ namespace PaJaMa.DatabaseStudio.Query
 				return;
 			}
 
+			var uc = new ucQueryOutput();
+			uc.Dock = DockStyle.Fill;
+            if (!uc.Connect(txtConnectionString.Text, _currentConnection, serverType, _currentConnection.Database, chkUseDummyDA.Checked))
+                return;
+
 			List<string> connStrings = Properties.Settings.Default.ConnectionStrings.Split('|').ToList();
 			if (!connStrings.Any(s => s == txtConnectionString.Text))
 				connStrings.Add(txtConnectionString.Text);
@@ -167,9 +164,6 @@ namespace PaJaMa.DatabaseStudio.Query
 			Properties.Settings.Default.LastQueryUseDummyDA = chkUseDummyDA.Checked;
 			Properties.Settings.Default.Save();
 
-			var uc = new ucQueryOutput();
-			uc.Dock = DockStyle.Fill;
-			uc.Connect(_currentConnection, serverType, _currentConnection.Database, chkUseDummyDA.Checked);
 			var tabPage = new TabPage();
 			tabPage.Text = "Query " + (tabOutputs.TabPages.Count + 1).ToString();
 			tabPage.Controls.Add(uc);
@@ -204,17 +198,17 @@ namespace PaJaMa.DatabaseStudio.Query
 
 			splitMain.Panel1Collapsed = false;
 
-			if (serverType.Equals(typeof(System.Data.SqlClient.SqlConnection)))
+			if (serverType.Equals(typeof(SqlConnection)))
 			{
 				var dt = new DataTable();
-				using (var da = new System.Data.SqlClient.SqlDataAdapter("select [name] from sys.databases order by [name]", (System.Data.SqlClient.SqlConnection)_currentConnection))
+				using (var da = new SqlDataAdapter("select [name] from sys.databases order by [name]", (System.Data.SqlClient.SqlConnection)_currentConnection))
 				{
 					da.Fill(dt);
 					foreach (var dr in dt.Rows.OfType<DataRow>())
 					{
-						var connStringBuilder = new SqlConnectionStringBuilder(_currentConnection.ConnectionString);
+						var connStringBuilder = new SqlConnectionStringBuilder(txtConnectionString.Text);
 						connStringBuilder.InitialCatalog = dr[0].ToString();
-						var db = new Database(connStringBuilder.ConnectionString);
+						var db = new Database(typeof(SqlConnection), connStringBuilder.ConnectionString);
 						var node = treeTables.Nodes.Add(db.ToString());
 						node.Nodes.Add("__NONE__");
 						node.Tag = db;
@@ -237,7 +231,8 @@ namespace PaJaMa.DatabaseStudio.Query
 		{
 			var uc = new ucQueryOutput();
 			uc.Dock = DockStyle.Fill;
-			uc.Connect(_currentConnection, cboServer.SelectedItem as Type, initialDatabase, chkUseDummyDA.Checked);
+            if (!uc.Connect(txtConnectionString.Text, _currentConnection, cboServer.SelectedItem as Type, initialDatabase, chkUseDummyDA.Checked))
+                return null;
 			var tabPage = new TabPage();
 			tabPage.Text = "Query " + (tabOutputs.TabPages.Count + 1).ToString();
 			tabPage.Controls.Add(uc);
@@ -390,6 +385,7 @@ namespace PaJaMa.DatabaseStudio.Query
 		private void selectToNew(int topN)
 		{
 			var uc = addQueryOutput(string.Empty);
+            if (uc == null) return;
 			uc.SelectTopN(topN, treeTables.SelectedNode);
 		}
 
@@ -487,6 +483,7 @@ namespace PaJaMa.DatabaseStudio.Query
 				return;
 
 			var uc = ws.addQueryOutput(string.Empty);
+            if (uc == null) return;
 
 			if (treeTables.SelectedNode.Tag is Database)
 			{

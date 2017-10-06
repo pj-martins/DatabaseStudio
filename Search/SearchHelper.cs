@@ -4,25 +4,24 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Data.SqlClient;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace PaJaMa.DatabaseStudio.Search
 {
 	public class SearchHelper
 	{
 		public Database Database { get; set; }
-		public SearchHelper(string connectionString, BackgroundWorker worker)
+		public SearchHelper(Type driverType, string connectionString, BackgroundWorker worker)
 		{
-			Database = new Database(connectionString);
+			Database = new Database(driverType, connectionString);
 			Database.PopulateChildren(true, worker);
 		}
 
 		public void Init(BackgroundWorker worker)
 		{
-			Database = new Database(Database.ConnectionString);
+			Database = new Database(Database.DriverType, Database.ConnectionString);
 			Database.PopulateChildren(true, worker);
 		}
 
@@ -35,8 +34,9 @@ namespace PaJaMa.DatabaseStudio.Search
 							   group c by c.Column.Table into g
 							   select g;
 
-			using (var conn = new SqlConnection(Database.ConnectionString))
+			using (var conn = Activator.CreateInstance(Database.DriverType) as DbConnection)
 			{
+                conn.ConnectionString = Database.ConnectionString;
 				conn.Open();
 				using (var cmd = conn.CreateCommand())
 				{
@@ -51,7 +51,8 @@ namespace PaJaMa.DatabaseStudio.Search
 						{
 							sb.AppendLine(firstIn ? "where " : "and ");
 							sb.AppendLine(string.Format("[{0}] = @{0}", col.Column.ColumnName));
-							cmd.Parameters.AddWithValue(string.Format("@{0}", col.Column.ColumnName), searchFor);
+                            // TODO:
+							(cmd as System.Data.SqlClient.SqlCommand).Parameters.AddWithValue(string.Format("@{0}", col.Column.ColumnName), searchFor);
 
 							firstIn = false;
 						}
@@ -64,7 +65,6 @@ namespace PaJaMa.DatabaseStudio.Search
 					}
 				}
 				conn.Close();
-				SqlConnection.ClearPool(conn);
 			}
 		}
 	}

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -31,21 +30,6 @@ namespace PaJaMa.DatabaseStudio.Compare
 		public ucCompare()
 		{
 			InitializeComponent();
-
-			if (Properties.Settings.Default.ConnectionStrings == null)
-				Properties.Settings.Default.ConnectionStrings = string.Empty;
-
-			refreshConnStrings();
-
-			if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareSourceConnString))
-				cboSource.Text = Properties.Settings.Default.LastCompareSourceConnString;
-
-			if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareTargetConnString))
-				cboTarget.Text = Properties.Settings.Default.LastCompareTargetConnString;
-
-			new GridHelper().DecorateGrid(gridTables);
-			new GridHelper().DecorateGrid(gridObjects);
-			new GridHelper().DecorateGrid(gridDropObjects);
 		}
 
 		private void refreshConnStrings()
@@ -62,11 +46,11 @@ namespace PaJaMa.DatabaseStudio.Compare
 
 			string fromConnString = cboSource.Text;
 			string toConnString = cboTarget.Text;
+            Type fromDriverType = cboSourceDriver.SelectedItem as Type;
+            Type toDriverType = cboTargetDriver.SelectedItem as Type;
 
 			Exception exception = null;
 
-			DataTable fromSchema = null;
-			DataTable toSchema = null;
 			string fromDatabase = string.Empty;
 			string toDatabase = string.Empty;
 
@@ -76,13 +60,12 @@ namespace PaJaMa.DatabaseStudio.Compare
 					_differencedTabs = new List<TabPage>();
 					try
 					{
-						using (var fromConnection = new SqlConnection(fromConnString))
+                        using (var fromConnection = Activator.CreateInstance(fromDriverType) as DbConnection)
 						{
+                            fromConnection.ConnectionString = fromConnString;
 							fromConnection.Open();
-							fromSchema = fromConnection.GetSchema("Databases");
 							fromDatabase = fromConnection.Database;
 							fromConnection.Close();
-							SqlConnection.ClearPool(fromConnection);
 						}
 					}
 					catch (Exception ex)
@@ -93,13 +76,12 @@ namespace PaJaMa.DatabaseStudio.Compare
 
 					try
 					{
-						using (var toConnection = new SqlConnection(toConnString))
+                        using (var toConnection = Activator.CreateInstance(toDriverType) as DbConnection)
 						{
+                            toConnection.ConnectionString = toConnString;
 							toConnection.Open();
-							toSchema = toConnection.GetSchema("Databases");
 							toDatabase = toConnection.Database;
 							toConnection.Close();
-							SqlConnection.ClearPool(toConnection);
 						}
 					}
 					catch (Exception ex)
@@ -108,7 +90,7 @@ namespace PaJaMa.DatabaseStudio.Compare
 						return;
 					}
 
-					_compareHelper = new CompareHelper(fromConnString, toConnString, worker);
+					_compareHelper = new CompareHelper(fromDriverType, toDriverType, fromConnString, toConnString, worker);
 				};
 
 			WinControls.WinProgressBox.ShowProgress(worker, progressBarStyle: ProgressBarStyle.Marquee);
@@ -127,22 +109,38 @@ namespace PaJaMa.DatabaseStudio.Compare
 				Properties.Settings.Default.ConnectionStrings = string.Join("|", connStrings.ToArray());
 				Properties.Settings.Default.LastCompareSourceConnString = cboSource.Text;
 				Properties.Settings.Default.LastCompareTargetConnString = cboTarget.Text;
+                Properties.Settings.Default.LastCompareSourceDriver = (cboSourceDriver.SelectedItem as Type).AssemblyQualifiedName;
+                Properties.Settings.Default.LastCompareTargetDriver = (cboTargetDriver.SelectedItem as Type).AssemblyQualifiedName;
 				Properties.Settings.Default.Save();
 
 				_lockDbChange = true;
 				cboSourceDatabase.Items.Clear();
-				foreach (var dr in fromSchema.Rows.OfType<DataRow>().OrderBy(x => x["database_name"].ToString()))
+                using (var fromConnection = Activator.CreateInstance(fromDriverType) as DbConnection)
+                {
+                    fromConnection.ConnectionString = fromConnString;
+                    fromConnection.Open();
+                    var driverHelper = new DriverHelper(fromConnection);
+                    foreach (var db in driverHelper.GetDatabases())
 				{
-					cboSourceDatabase.Items.Add(dr["database_name"].ToString());
+                        cboSourceDatabase.Items.Add(db);
 				}
 				cboSourceDatabase.Text = fromDatabase;
+                    fromConnection.Close();
+                }
+                
 
 				cboTargetDatabase.Items.Clear();
-				foreach (var dr in toSchema.Rows.OfType<DataRow>().OrderBy(x => x["database_name"].ToString()))
+                using (var toConnection = Activator.CreateInstance(toDriverType) as DbConnection)
 				{
-					cboTargetDatabase.Items.Add(dr["database_name"].ToString());
+                    toConnection.ConnectionString = toConnString;
+                    toConnection.Open();
+                    var driverHelper = new DriverHelper(toConnection);
+                    foreach (var db in driverHelper.GetDatabases())
+                    {
+                        cboTargetDatabase.Items.Add(db);
 				}
 				cboTargetDatabase.Text = toDatabase;
+                }
 				_lockDbChange = false;
 
 				btnConnect.Visible = btnRemoveSourceConnString.Visible = btnRemoveTargetConnString.Visible = false;
@@ -975,5 +973,38 @@ namespace PaJaMa.DatabaseStudio.Compare
 				gridTables.Refresh();
 			}
 		}
+
+        private void ucCompare_Load(object sender, EventArgs e)
+        {
+            if (Properties.Settings.Default.ConnectionStrings == null)
+                Properties.Settings.Default.ConnectionStrings = string.Empty;
+
+            refreshConnStrings();
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareSourceConnString))
+                cboSource.Text = Properties.Settings.Default.LastCompareSourceConnString;
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareTargetConnString))
+                cboTarget.Text = Properties.Settings.Default.LastCompareTargetConnString;
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareSourceDriver))
+                cboSourceDriver.SelectedItem = Type.GetType(Properties.Settings.Default.LastCompareSourceDriver);
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LastCompareTargetDriver))
+                cboTargetDriver.SelectedItem = Type.GetType(Properties.Settings.Default.LastCompareTargetDriver);
+
+            new GridHelper().DecorateGrid(gridTables);
+            new GridHelper().DecorateGrid(gridObjects);
+            new GridHelper().DecorateGrid(gridDropObjects);
+
+            cboSourceDriver.DataSource = DriverHelper.GetDatabaseTypes();
+            cboTargetDriver.DataSource = DriverHelper.GetDatabaseTypes();
+        }
+
+        private void cboDriver_Format(object sender, ListControlConvertEventArgs e)
+        {
+            Type type = e.ListItem as Type;
+            e.Value = type.Name;
+        }
 	}
 }

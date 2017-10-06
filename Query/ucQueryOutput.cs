@@ -12,6 +12,7 @@ using System.Data.SqlClient;
 using PaJaMa.DatabaseStudio.DatabaseObjects;
 using System.Threading;
 using PaJaMa.DatabaseStudio.Query.Classes;
+using PaJaMa.DatabaseStudio.Classes;
 
 namespace PaJaMa.DatabaseStudio.Query
 {
@@ -74,7 +75,9 @@ namespace PaJaMa.DatabaseStudio.Query
 				new Thread(new ThreadStart(execute)).Start();
 		}
 
-		public void Connect(DbConnection connection, Type serverType, string initialDatabase, bool useDummyDA)
+		public bool Connect(string connectionString, DbConnection connection, Type serverType, string initialDatabase, bool useDummyDA)
+		{
+            try
 		{
 			if (useDummyDA)
 				_currentConnection = connection;
@@ -82,7 +85,7 @@ namespace PaJaMa.DatabaseStudio.Query
 			{
 				_currentConnection = Activator.CreateInstance(connection.GetType()) as DbConnection;
 
-				_currentConnection.ConnectionString = connection.ConnectionString;
+                    _currentConnection.ConnectionString = connectionString;
 				if (_currentConnection is SqlConnection)
 					(_currentConnection as SqlConnection).InfoMessage += ucQueryOutput_InfoMessage;
 
@@ -103,9 +106,9 @@ namespace PaJaMa.DatabaseStudio.Query
 					cboDatabases.Items.Clear();
 					foreach (var dr in dt.Rows.OfType<DataRow>())
 					{
-						var connStringBuilder = new SqlConnectionStringBuilder(_currentConnection.ConnectionString);
+                            var connStringBuilder = new SqlConnectionStringBuilder(connectionString);
 						connStringBuilder.InitialCatalog = dr[0].ToString();
-						var db = new Database(connStringBuilder.ConnectionString);
+                            var db = new Database(typeof(SqlConnection), connectionString);
 						cboDatabases.Items.Add(db);
 					}
 
@@ -131,8 +134,13 @@ namespace PaJaMa.DatabaseStudio.Query
 			//		node.Tag = table;
 			//	}
 			//}
-
-
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                return false;
+            }
 		}
 
 		private void ucQueryOutput_InfoMessage(object sender, SqlInfoMessageEventArgs e)
@@ -440,20 +448,16 @@ namespace PaJaMa.DatabaseStudio.Query
 				_currentConnection.ChangeDatabase(selectedNode.Parent.Parent.Text);
 
 			string objName = string.Empty;
-			string schemaName = string.Empty;
-			string columns = string.Empty;
-			string join = ",\r\n\t";
-			if (_currentConnection.GetType().Equals(typeof(SqlConnection)))
-				join = "],\r\n\t[";
+			string schemaName = null;
+            string[] columns = null;
+
 			if (selectedNode.Tag is PaJaMa.DatabaseStudio.DatabaseObjects.View)
 			{
 				var view = selectedNode.Tag as PaJaMa.DatabaseStudio.DatabaseObjects.View;
 				objName = view.ViewName;
 				if (view.Schema != null)
 					schemaName = view.Schema.SchemaName;
-				columns = (join.StartsWith("]") ? "[" : "") +
-					string.Join(join, view.Columns.Select(c => c.ColumnName).ToArray()) +
-					 (join.StartsWith("]") ? "]" : "");
+                columns = view.Columns.Select(c => c.ColumnName).ToArray();
 			}
 			else
 			{
@@ -461,21 +465,16 @@ namespace PaJaMa.DatabaseStudio.Query
 				objName = tbl.TableName;
 				if (tbl.Schema != null)
 					schemaName = tbl.Schema.SchemaName;
-				columns = (join.StartsWith("]") ? "[" : "") +
-					string.Join(join, tbl.Columns.Select(c => c.ColumnName).ToArray()) +
-					 (join.StartsWith("]") ? "]" : "");
+                columns = tbl.Columns.Select(c => c.ColumnName).ToArray();
 			}
 
-			if (_currentConnection.GetType().Name.ToLower().Contains("sqlite"))
-				txtQuery.AppendText(string.Format("select * from [" + selectedNode.Text + "]{0}", topN > 0 ? " limit " + topN.ToString() : ""));
-			else if (_currentConnection.GetType().Equals(typeof(SqlConnection)))
-			{
-				txtQuery.AppendText(string.Format("select{0}\r\n\t{4}\r\nfrom [{1}].[{2}].[{3}]", topN > 0 ? " top " + topN.ToString() : "",
-					_currentConnection.Database, schemaName, objName, columns));
-			}
-			else
-				txtQuery.AppendText(string.Format("select{0}\r\n\t{1}\r\nfrom " + selectedNode.Text, topN > 0 ? " top " + topN.ToString() : "", columns));
-			// btnGo_Click(this, new EventArgs());
+			var driverHelper = new DriverHelper(_currentConnection);
+            txtQuery.AppendText(string.Format("select {0}\r\n\t{1}\r\nfrom {2}\r\n{3}",
+                topN != null ? driverHelper.GetPreTopN(topN.Value) : string.Empty,
+                driverHelper.GetColumnList(columns),
+                driverHelper.GetTable(objName, _currentConnection.Database, schemaName),
+                topN != null ? driverHelper.GetPostTopN(topN.Value) : string.Empty
+                ));
 		}
 
 		public void PopulateScript(string script, TreeNode selectedNode)
