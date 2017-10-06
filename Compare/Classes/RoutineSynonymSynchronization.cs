@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class RoutineSynonymSynchronization : DatabaseObjectSynchronizationBase<RoutineSynonym>
 	{
-		public RoutineSynonymSynchronization(RoutineSynonym routineSynonym)
-			: base(routineSynonym)
+		public RoutineSynonymSynchronization(Database targetDatabase, RoutineSynonym routineSynonym)
+			: base(targetDatabase, routineSynonym)
 		{
 		}
 
@@ -25,7 +25,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 				var createAlter = databaseObject.Definition;
 				if (databaseObject.Type == PaJaMa.DatabaseStudio.DatabaseObjects.RoutineSynonym.RoutineSynonymType.Synonym)
 				{
-					createAlter = createAlter.Insert(0, new RoutineSynonymSynchronization(target as RoutineSynonym).GetRawDropText() + "\r\n");
+					createAlter = createAlter.Insert(0, new RoutineSynonymSynchronization(targetDatabase, target as RoutineSynonym).GetRawDropText() + "\r\n");
 				}
 				else
 				{

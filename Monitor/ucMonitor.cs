@@ -312,7 +312,7 @@ namespace PaJaMa.DatabaseStudio.Monitor
 					}
 				}
 			}
-			catch (Exception e)
+			catch
 			{
 			}
 		}

@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class SchemaSynchronization : DatabaseObjectSynchronizationBase<Schema>
 	{
-		public SchemaSynchronization(Schema schema)
-			: base(schema)
+		public SchemaSynchronization(Database targetDatabase, Schema schema)
+			: base(targetDatabase, schema)
 		{
 		}
 
@@ -39,7 +39,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 		{
 			if (!isForDrop)
 			{
-				var princ = databaseObject.Database.Principals.FirstOrDefault(p => p.PrincipalName == databaseObject.SchemaOwner);
+				var princ = databaseObject.ParentDatabase.Principals.FirstOrDefault(p => p.PrincipalName == databaseObject.SchemaOwner);
 				if (princ != null)
 				{
 					var targetPrinc = existingTargetObjects.OfType<DatabasePrincipal>().FirstOrDefault(p => p.PrincipalName == princ.PrincipalName);

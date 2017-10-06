@@ -10,6 +10,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 {
 	public abstract class WorkspaceBase
 	{
+        public Database TargetDatabase { get; set; }
 		public DatabaseObjectBase TargetObject { get; set; }
 		public List<SynchronizationItem> SynchronizationItems { get; private set; }
 
@@ -29,8 +30,9 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 			}
 		}
 
-		public WorkspaceBase(DatabaseObjectBase targetObject)
+		public WorkspaceBase(Database targetDatabase, DatabaseObjectBase targetObject)
 		{
+            TargetDatabase = targetDatabase;
 			TargetObject = targetObject;
 			SynchronizationItems = new List<SynchronizationItem>();
 		}
@@ -39,8 +41,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 	public abstract class WorkspaceWithSourceBase : WorkspaceBase
 	{
 		public virtual DatabaseObjectBase SourceObject { get; set; }
-		public WorkspaceWithSourceBase(DatabaseObjectBase sourceObject, DatabaseObjectBase targetObject)
-			: base(targetObject)
+		public WorkspaceWithSourceBase(DatabaseObjectBase sourceObject, Database targetDatabase, DatabaseObjectBase targetObject)
+			: base(targetDatabase, targetObject)
 		{
 			SourceObject = sourceObject;
 			populateDifferences();
@@ -48,7 +50,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 
 		private void populateDifferences()
 		{
-			var syncItem = DatabaseObjectSynchronizationBase.GetSynchronization(SourceObject);
+			var syncItem = DatabaseObjectSynchronizationBase.GetSynchronization(TargetDatabase, SourceObject);
 			SynchronizationItems.AddRange(syncItem.GetSynchronizationItems(TargetObject));
 
 			if (SourceObject is DatabaseObjectWithExtendedProperties)

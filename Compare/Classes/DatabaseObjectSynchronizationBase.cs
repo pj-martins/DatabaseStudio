@@ -13,8 +13,11 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 	{
 		protected DatabaseObjectBase databaseObject { get; private set; }
 
-		public DatabaseObjectSynchronizationBase(DatabaseObjectBase obj)
+        protected Database targetDatabase { get; private set; }
+
+        public DatabaseObjectSynchronizationBase(Database targetDb, DatabaseObjectBase obj)
 		{
+            targetDatabase = targetDb;
 			databaseObject = obj;
 		}
 
@@ -59,7 +62,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			var diff = new List<Difference>();
 			foreach (var propInf in databaseObject.GetType().GetProperties())
 			{
-				if (propInf.Name == "ObjectName" || propInf.Name == "Description" || propInf.Name == "ObjectType") continue;
+				if (propInf.Name == "ObjectName" || propInf.Name == "QueryObjectName" || propInf.Name == "Description" || propInf.Name == "ObjectType") continue;
 
 				var type = propInf.PropertyType;
 
@@ -139,7 +142,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			{
 				foreach (var ep in (databaseObject as DatabaseObjectWithExtendedProperties).ExtendedProperties)
 				{
-					rawText += (insertGo ? "\r\nGO\r\n\r\n" : "\r\n") + new ExtendedPropertySynchronization(ep).GetRawCreateText();
+					rawText += (insertGo ? "\r\nGO\r\n\r\n" : "\r\n") + new ExtendedPropertySynchronization(targetDatabase, ep).GetRawCreateText();
 				}
 			}
 
@@ -157,14 +160,14 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			return rawText.Trim();
 		}
 
-		public static DatabaseObjectSynchronizationBase GetSynchronization(object forObject)
+		public static DatabaseObjectSynchronizationBase GetSynchronization(Database targetDatabase, object forObject)
 		{
 			var genericType = typeof(DatabaseObjectSynchronizationBase<>).MakeGenericType(forObject.GetType());
 			var type = (from t in typeof(DatabaseObjectSynchronizationBase).Assembly.GetTypes()
 						where t.IsSubclassOf(genericType)
 						select t).First();
 
-			return Activator.CreateInstance(type, forObject) as DatabaseObjectSynchronizationBase;
+			return Activator.CreateInstance(type, targetDatabase, forObject) as DatabaseObjectSynchronizationBase;
 		}
 	}
 
@@ -172,10 +175,11 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 		where TDatabaseObject : DatabaseObjectBase
 	{
 		protected new TDatabaseObject databaseObject { get; private set; }
-
-		public DatabaseObjectSynchronizationBase(TDatabaseObject obj)
-			: base(obj)
+        
+		public DatabaseObjectSynchronizationBase(Database targetDb, TDatabaseObject obj)
+			: base(targetDb, obj)
 		{
+
 			databaseObject = obj;
 		}
 	}

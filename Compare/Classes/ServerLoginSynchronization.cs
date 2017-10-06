@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class ServerLoginSynchronization : DatabaseObjectSynchronizationBase<ServerLogin>
 	{
-		public ServerLoginSynchronization(ServerLogin login)
-			: base(login)
+		public ServerLoginSynchronization(Database targetDatabase, ServerLogin login)
+			: base(targetDatabase, login)
 		{
 		}
 

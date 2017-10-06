@@ -491,13 +491,17 @@
     <Content Include=".gitignore" />
     <Content Include="Compare\Scripts\DatabaseCreate.sql" />
     <Content Include="Compare\Scripts\TestDatabase.sql" />
+    <EmbeddedResource Include="DataSources\Dependencies\_x64\SQLite.Interop.dll" />
+    <EmbeddedResource Include="DataSources\Dependencies\_x86\SQLite.Interop.dll" />
+    <EmbeddedResource Include="DataSources\Npgsql.dll" />
+    <EmbeddedResource Include="DataSources\System.Data.SQLite.dll" />
+    <EmbeddedResource Include="DataSources\Dependencies\System.Threading.Tasks.Extensions.dll" />
     <EmbeddedResource Include="DataGenerate\Content\State.txt" />
     <EmbeddedResource Include="DataGenerate\Content\Street.txt" />
     <EmbeddedResource Include="DataGenerate\Content\City.txt" />
     <EmbeddedResource Include="DataGenerate\Content\FirstName.txt" />
     <EmbeddedResource Include="DataGenerate\Content\LastName.txt" />
     <Content Include="Database.ico" />
-    <Content Include="Resources\SQLite\System.Data.SQLite.dll" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\PaJaMa.Common.csproj">

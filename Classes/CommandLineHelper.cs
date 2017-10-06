@@ -43,7 +43,7 @@ namespace PaJaMa.DatabaseStudio.Classes
 											  where t.ToString() == ws.TargetSchemaTableName
 											  select t;
 
-								workspaces.Add(new TableWorkspace(compareHelper, fromTbl.First(), toTbl.First())
+								workspaces.Add(new TableWorkspace(compareHelper, fromTbl.First(), compareHelper.ToDatabase, toTbl.First())
 									{
 										SelectTableForData = ws.SelectTableForData,
 										KeepIdentity = ws.KeepIdentity,

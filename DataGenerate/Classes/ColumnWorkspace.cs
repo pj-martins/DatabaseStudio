@@ -22,7 +22,7 @@ namespace PaJaMa.DatabaseStudio.DataGenerate.Classes
 			if (Column.IsIdentity || !string.IsNullOrEmpty(Column.Formula))
 				return;
 
-			var fks = from s in Column.Table.Schema.Database.Schemas
+			var fks = from s in Column.Table.Schema.ParentDatabase.Schemas
 					  from t in s.Tables
 					  from fk in t.ForeignKeys
 					  where fk.ChildTable.TableName == Column.Table.TableName

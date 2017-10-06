@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class PermissionSynchronization : DatabaseObjectSynchronizationBase<Permission>
 	{
-		public PermissionSynchronization(Permission permission)
-			: base(permission)
+		public PermissionSynchronization(Database targetDatabase, Permission permission)
+			: base(targetDatabase, permission)
 		{
 		}
 

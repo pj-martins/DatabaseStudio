@@ -1,4 +1,5 @@
 ﻿using PaJaMa.Common;
+using PaJaMa.DatabaseStudio.Classes;
 using PaJaMa.DatabaseStudio.DatabaseObjects;
 using System;
 using System.Collections.Generic;
@@ -11,17 +12,16 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class ColumnSynchronization : DatabaseObjectSynchronizationBase<Column>
 	{
-		public ColumnSynchronization(Column column)
-			: base(column)
+		public ColumnSynchronization(Database targetDatabase, Column column)
+			: base(targetDatabase, column)
 		{
 		}
 
 		public override List<SynchronizationItem> GetDropItems()
 		{
-			return getStandardItems(string.Format("ALTER TABLE [{0}].[{1}] DROP COLUMN [{2}]",
-						databaseObject.Table.Schema.SchemaName,
-						databaseObject.Table.TableName,
-						databaseObject.ColumnName), level: 1, propertyName: Difference.DROP);
+			return getStandardItems(string.Format("ALTER TABLE {0} DROP COLUMN {1}",
+						databaseObject.Table.QueryNameWithSchema,
+						databaseObject.QueryObjectName), level: 1, propertyName: Difference.DROP);
 		}
 
 		public override List<SynchronizationItem> GetCreateItems()
@@ -59,13 +59,13 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			//else if (fromCol["COLUMN_DEFAULT"] != DBNull.Value)
 			//	def = "DEFAULT(" + fromCol["COLUMN_DEFAULT"] + ")";
 
-			string colDef = databaseObject.ColumnDefault;
+            string colDef = DriverHelper.GetConvertedColumnDefault(targetDatabase, databaseObject.ColumnDefault);
 			if (!string.IsNullOrEmpty(colDef) && colDef.StartsWith("((") && colDef.EndsWith("))"))
 				colDef = colDef.Substring(1, colDef.Length - 2);
 
-			if (!string.IsNullOrEmpty(databaseObject.ColumnDefault) && !string.IsNullOrEmpty(databaseObject.ConstraintName))
+			if (!string.IsNullOrEmpty(colDef) && !string.IsNullOrEmpty(databaseObject.ConstraintName))
 				def = "CONSTRAINT [" + databaseObject.ConstraintName + "] DEFAULT(" + colDef + ")";
-			else if (!string.IsNullOrEmpty(databaseObject.ColumnDefault))
+			else if (!string.IsNullOrEmpty(colDef))
 				def = "DEFAULT(" + colDef + ")";
 			return def;
 		}
@@ -85,13 +85,12 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 					item = new SynchronizationItem(databaseObject);
 					item.Differences.Add(new Difference() { PropertyName = "Formula", SourceValue = databaseObject.Formula, TargetValue = targetColumn == null ? string.Empty : targetColumn.Formula });
 					if (targetColumn != null)
-						item.AddScript(1, string.Format("ALTER TABLE [{0}].[{1}] DROP COLUMN [{2}]", databaseObject.Table.Schema.SchemaName,
-							databaseObject.Table.TableName, databaseObject.ColumnName));
+						item.AddScript(1, string.Format("ALTER TABLE {0} DROP COLUMN {1}", databaseObject.Table.QueryNameWithSchema,
+							databaseObject.QueryObjectName));
 
-					item.AddScript(3, string.Format("ALTER TABLE [{0}].[{1}] ADD [{2}] AS {3}",
-						databaseObject.Table.Schema.SchemaName,
-						databaseObject.Table.TableName,
-						databaseObject.ColumnName,
+					item.AddScript(3, string.Format("ALTER TABLE {0} ADD {1} AS {2}",
+						databaseObject.Table.QueryNameWithSchema,
+						databaseObject.QueryObjectName,
 						databaseObject.Formula));
 
 					items.Add(item);
@@ -102,6 +101,22 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 
 			var differences = targetColumn == null ? new List<Difference>() { new Difference() { PropertyName = Difference.CREATE } }
 				: base.GetPropertyDifferences(targetColumn);
+
+            for (int i = differences.Count - 1; i >= 0; i--)
+            {
+                var diff = differences[i];
+                if (diff.PropertyName == "DataType")
+                {
+                    if (diff.TargetValue == DriverHelper.GetConvertedColumnType(targetDatabase, diff.SourceValue))
+                        differences.RemoveAt(i);
+                }
+                else if (diff.PropertyName == "ColumnDefault")
+                {
+                    if (diff.TargetValue == DriverHelper.GetConvertedColumnDefault(targetDatabase, diff.SourceValue) ||
+                        diff.TargetValue == "(" + DriverHelper.GetConvertedColumnDefault(targetDatabase, diff.SourceValue) + ")")
+                        differences.RemoveAt(i);
+                }
+            }
 
 			// case mismatch
 			if (targetColumn != null && targetColumn.ColumnName != databaseObject.ColumnName)
@@ -167,10 +182,9 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 				}
 			}
 
-			sb.AppendLineFormat("ALTER TABLE [{0}].[{1}] {7} [{2}] [{3}]{4} {5} {6}",
-				databaseObject.Table.Schema.SchemaName,
-				databaseObject.Table.TableName,
-				databaseObject.ColumnName,
+			sb.AppendLineFormat("ALTER TABLE {0} {6} {1} [{2}]{3} {4} {5}",
+				databaseObject.Table.QueryNameWithSchema,
+				databaseObject.QueryObjectName,
 				databaseObject.DataType,
 				part2,
 				databaseObject.IsNullable ? "NULL" : "NOT NULL",
@@ -200,7 +214,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			var kcs = databaseObject.Table.KeyConstraints.Where(k => !k.IsPrimaryKey && k.Columns.Any(ic => ic.ColumnName == databaseObject.ColumnName));
 			foreach (var kc in kcs)
 			{
-				var syncItem = new KeyConstraintSynchronization(kc);
+				var syncItem = new KeyConstraintSynchronization(targetDatabase, kc);
 				item.AddScript(0, syncItem.GetRawDropText());
 				item.AddScript(10, syncItem.GetRawCreateText());
 			}
@@ -210,7 +224,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 				var dcs = databaseObject.Table.DefaultConstraints.Where(dc => dc.Column.ColumnName == databaseObject.ColumnName);
 				foreach (var dc in dcs)
 				{
-					var syncItem = new DefaultConstraintSynchronization(dc);
+					var syncItem = new DefaultConstraintSynchronization(targetDatabase, dc);
 					item.AddScript(0, syncItem.GetRawDropText());
 					item.AddScript(10, syncItem.GetRawCreateText());
 				}

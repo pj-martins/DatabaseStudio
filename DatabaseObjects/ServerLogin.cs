@@ -20,7 +20,8 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 			get { return LoginType.ToString(); }
 		}
 
-		public Database Database { get; set; }
+        private Database _database;
+        public override Database ParentDatabase => _database;
 
 		public string LoginName { get; set; }
 		public LoginType LoginType { get; set; }
@@ -36,7 +37,15 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 			if (database.Is2000OrLess)
 				return;
 
-			string qry = @"
+            // TODO:
+            if (database.IsPostgreSQL)
+                return;
+
+            // TODO:
+            if (database.IsSQLite) return;
+
+
+            string qry = @"
 select p.name as LoginName, 
 	p.default_database_name as DefaultDatabaseName,
 	p.default_language_name as DefaultLanguageName,
@@ -61,7 +70,7 @@ where p.type in ('U', 'S') and p.name not in ('INFORMATION_SCHEMA', 'sys', 'gues
 							var login = rdr.ToObject<ServerLogin>();
 							login.ExtendedProperties = extendedProperties.Where(ep => ep.ObjectType == LoginType.SQLLogin.ToString() &&
 								ep.Level1Object == login.LoginName).ToList();
-							login.Database = database;
+							login._database = database;
 							database.ServerLogins.Add(login);
 						}
 					}

@@ -110,8 +110,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 
 		public DataTableWithSchema ComparedData { get; set; }
 
-		public TableWorkspace(CompareHelper compareHelper, Table sourceTable, Table targetTable)
-			: base(sourceTable, targetTable)
+		public TableWorkspace(CompareHelper compareHelper, Table sourceTable, Database targetDatabase, Table targetTable)
+			: base(sourceTable, targetDatabase, targetTable)
 		{
 			_compareHelper = compareHelper;
 		}
@@ -186,12 +186,12 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 			foreach (var tbl in fromTbls)
 			{
 				Table sourceTable = tbl;
-				Table targetTable = toTbls.FirstOrDefault(t => t.TableName == tbl.TableName && t.Schema.SchemaName == tbl.Schema.SchemaName);
-				lst.Workspaces.Add(new TableWorkspace(compareHelper, sourceTable, targetTable));
+				Table targetTable = toTbls.FirstOrDefault(t => t.TableName == tbl.TableName && t.Schema.MappedSchemaName == tbl.Schema.MappedSchemaName);
+				lst.Workspaces.Add(new TableWorkspace(compareHelper, sourceTable, compareHelper.ToDatabase, targetTable));
 			}
 
 			foreach (var table in toTbls
-				.Where(x => !fromTbls.Any(t => t.TableName == x.TableName && t.Schema.SchemaName == x.Schema.SchemaName)))
+				.Where(x => !fromTbls.Any(t => t.TableName == x.TableName && t.Schema.MappedSchemaName == x.Schema.MappedSchemaName)))
 			{
 				lst.DropWorkspaces.Add(new DropWorkspace(table));
 			}

@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class ExtendedPropertySynchronization : DatabaseObjectSynchronizationBase<ExtendedProperty>
 	{
-		public ExtendedPropertySynchronization(ExtendedProperty prop)
-			: base(prop)
+		public ExtendedPropertySynchronization(Database targetDatabase, ExtendedProperty prop)
+			: base(targetDatabase, prop)
 		{
 		}
 
@@ -28,11 +28,11 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 					var fromProp = sourceObject.ExtendedProperties.FirstOrDefault(p => p.PropName == toProperty.PropName);
 					if (fromProp == null)
 					{
-						items.AddRange(new ExtendedPropertySynchronization(toProperty).GetDropItems());
+						items.AddRange(new ExtendedPropertySynchronization(targetObject.ParentDatabase, toProperty).GetDropItems());
 					}
 					else
 					{
-						var toItems = new ExtendedPropertySynchronization(fromProp).GetSynchronizationItems(toProperty);
+						var toItems = new ExtendedPropertySynchronization(targetObject.ParentDatabase, fromProp).GetSynchronizationItems(toProperty);
 						if (toItems.Any())
 							items.AddRange(toItems);
 
@@ -46,7 +46,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 				if (skips.Contains(fromProperty.PropName))
 					continue;
 
-				items.AddRange(new ExtendedPropertySynchronization(fromProperty).GetCreateItems());
+				items.AddRange(new ExtendedPropertySynchronization(targetObject.ParentDatabase, fromProperty).GetCreateItems());
 			}
 
 			return items;
@@ -93,7 +93,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 					SourceValue = ext.PropValue == null ? string.Empty : databaseObject.PropValue.ToString(),
 					TargetValue = databaseObject.PropValue == null ? string.Empty : ext.PropValue.ToString()
 				});
-				item.AddScript(1, new ExtendedPropertySynchronization(databaseObject).GetRawDropText());
+				item.AddScript(1, new ExtendedPropertySynchronization(targetDatabase, databaseObject).GetRawDropText());
 				item.AddScript(7, getAddScript());
 			}
 			return items;

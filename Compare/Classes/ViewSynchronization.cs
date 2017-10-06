@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class ViewSynchronization : DatabaseObjectSynchronizationBase<View>
 	{
-		public ViewSynchronization(View view)
-			: base(view)
+		public ViewSynchronization(Database targetDatabase, View view)
+			: base(targetDatabase, view)
 		{
 		}
 

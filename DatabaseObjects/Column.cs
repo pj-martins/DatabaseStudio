@@ -20,6 +20,11 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		[Ignore]
 		public Table Table { get; set; }
 
+        public override Database ParentDatabase
+        {
+            get { return Table.ParentDatabase; }
+        }
+
 		public string ColumnName { get; set; }
 
 		[Ignore]
@@ -35,11 +40,43 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public int? NumericScale { get; set; }
 		public decimal? Increment { get; set; }
 
-		[Ignore]
+        [Ignore]
 		public string ConstraintName { get; set; }
 
 		public static void PopulateColumnsForTable(Database database, DbConnection connection, List<ExtendedProperty> allExtendedProperties)
 		{
+            if (database.IsSQLite)
+            {
+                using (var cmd = connection.CreateCommand())
+                {
+                    foreach (var tbl in database.Schemas.First().Tables)
+                    {
+                        cmd.CommandText = $"pragma table_info({tbl.TableName})";
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            if (rdr.HasRows)
+                            {
+                                while (rdr.Read())
+                                {
+                                    var col = new Column();
+                                    col.ColumnName = rdr["name"].ToString();
+                                    col.DataType = rdr["type"].ToString();
+                                    col.IsNullable = rdr["notnull"].ToString() == "0";
+                                    var def = rdr["dflt_value"];
+                                    if (def != DBNull.Value)
+                                        col.ColumnDefault = def.ToString();
+                                    col.IsIdentity = rdr["pk"].ToString() == "1";
+                                    col.Table = tbl;
+                                    tbl.Columns.Add(col);
+                                }
+                            }
+                            rdr.Close();
+                        }
+                    }
+                }
+                return;
+            }
+
             string query = string.Empty;
             if (connection is SqlConnection)
             {
@@ -80,7 +117,7 @@ left join sys.default_constraints d on d.object_id = c.default_object_id
 left join sys.computed_columns cm on cm.name = co.column_name and c.is_computed = 1 and cm.object_id = t.object_id";
                 }
             }
-            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            else if (database.IsPostgreSQL)
             {
                 query = @"
 select co.TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as OrdinalPosition, 
@@ -90,7 +127,8 @@ select co.TABLE_NAME as TableName, COLUMN_NAME as ColumnName, ORDINAL_POSITION a
 	co.TABLE_SCHEMA as SchemaName
 from INFORMATION_SCHEMA.COLUMNS co
 join INFORMATION_SCHEMA.TABLES t on t.TABLE_NAME = co.TABLE_NAME
-where t.TABLE_TYPE = 'BASE TABLE'";
+where t.TABLE_TYPE = 'BASE TABLE'
+and co.TABLE_SCHEMA <> 'pg_catalog' and co.TABLE_SCHEMA <> 'information_schema'";
             }
             else
                 throw new NotImplementedException();

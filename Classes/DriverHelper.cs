@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PaJaMa.DatabaseStudio.DatabaseObjects;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -9,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace PaJaMa.DatabaseStudio.Classes
@@ -31,16 +33,40 @@ namespace PaJaMa.DatabaseStudio.Classes
             };
 
             var partial = ".DataSources.";
-            var dataResources = typeof(DriverHelper).Assembly.GetManifestResourceNames().Where(n => n.Contains(partial));
+            var partialDependencies = "Dependencies.";
+            var dataResources = typeof(DriverHelper).Assembly.GetManifestResourceNames()
+                .Where(n => n.Contains(partial))
+                .OrderBy(n => n.Contains(partial + partialDependencies) ? 0 : 1)
+                ;
             foreach (var dr in dataResources)
             {
+                bool isDependency = false;
                 var fileName = dr.Substring(dr.IndexOf(partial) + partial.Length);
+                if (fileName.StartsWith(partialDependencies))
+                {
+                    isDependency = true;
+                    fileName = dr.Substring(dr.IndexOf(partialDependencies) + partialDependencies.Length);
+                    var parts = fileName.Split('.').ToList();
+                    var dirPart = string.Empty;
+                    while (parts[0].StartsWith("_"))
+                    {
+                        dirPart += parts[0].Substring(1) + "\\";
+                        parts.RemoveAt(0);
+                    }
+
+                    if (!string.IsNullOrEmpty(dirPart))
+                    {
+                        Directory.CreateDirectory(dirPart);
+                        fileName = dirPart + string.Join(".", parts.ToArray());
+                    }
+                }
                 if (!File.Exists(fileName))
                 {
                     var stream = typeof(DriverHelper).Assembly.GetManifestResourceStream(dr);
                     var bytes = Common.Common.StreamToBytes(stream, stream.Length);
                     File.WriteAllBytes(fileName, bytes);
                 }
+                if (isDependency) continue;
                 FileInfo finf = new FileInfo(fileName);
                 var asm = Assembly.LoadFile(finf.FullName);
                 foreach (var t in asm.GetTypes().Where(t => t.GetInterface(typeof(System.Data.IDbConnection).Name) != null))
@@ -107,12 +133,61 @@ namespace PaJaMa.DatabaseStudio.Classes
 
         public List<string> GetDatabases()
         {
-            if (_connection.GetType().Name.ToLower() == "sqlite")
+            if (_connection.GetType().Name.ToLower().Contains("sqlite"))
             {
-                throw new NotImplementedException();
+                return new List<string>() { "Default" };
             }
 
             return _connection.GetSchema("Databases").Rows.OfType<DataRow>().Select(dr => dr["database_name"].ToString()).ToList();
+        }
+
+        public static string GetConvertedColumnDefault(Database targetDatabase, string columnDefault)
+        {
+            if (string.IsNullOrEmpty(columnDefault)) return columnDefault;
+
+            if (targetDatabase.IsSQLServer)
+                return columnDefault.Replace("now()", "getdate()").Replace("uuid_generate_v4()", "newid()");
+
+            if (targetDatabase.IsPostgreSQL)
+                return columnDefault.Replace("getdate()", "now()").Replace("newid()", "uuid_generate_v4()");
+
+            return columnDefault;
+        }
+
+        public static string GetConvertedColumnType(Database targetDatabase, string columnType)
+        {
+            if (targetDatabase.IsSQLServer)
+            {
+                return columnType
+                    .Replace("timestamp with time zone", "datetime")
+                    .Replace("uuid", "uniqueidentifier")
+                    .Replace("character varying", "nvarchar")
+                    .Replace("jsonb", "text")
+                ;
+            }
+                
+
+            //if (targetDatabase.IsPostgreSQL)
+            //    return columnType.Replace("getdate()", "now()").Replace("newid()", "uuid_generate_v4()");
+
+            return columnType;
+        }
+
+        public static string GetConvertedObjectName(Database targetDatabase, string objectName)
+        {
+            var colFormat = "{0}";
+            if (targetDatabase.IsPostgreSQL)
+                colFormat = "\"{0}\"";
+            else
+                colFormat = "[{0}]";
+            return string.Format(colFormat, objectName);
+        }
+
+        public static string GetConvertedSchemaName(Database targetDatabase, string schemaName)
+        {
+            if (targetDatabase.IsSQLServer && schemaName == "public") return "dbo";
+            if (targetDatabase.IsPostgreSQL && schemaName == "dbo") return "public";
+            return schemaName;
         }
     }
 }

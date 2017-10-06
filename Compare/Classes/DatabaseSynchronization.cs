@@ -37,7 +37,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 					//	break;
 					//}
 
-					if (!tbl.ForeignKeys.Any(fk => !sorted.Any(s => s.TableName == fk.ParentTable.TableName && s.Schema.SchemaName == fk.ParentTable.Schema.SchemaName)))
+					if (!tbl.ForeignKeys.Any(fk => !sorted.Any(s => s.TableName == fk.ParentTable.TableName && s.Schema.MappedSchemaName == fk.ParentTable.Schema.MappedSchemaName)))
 					{
 						sorted.Add(tbl);
 						tbls.RemoveAt(i);
@@ -86,7 +86,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 
 			foreach (var obj in sorted)
 			{
-				var sync = DatabaseObjectSynchronizationBase.GetSynchronization(obj);
+				var sync = DatabaseObjectSynchronizationBase.GetSynchronization(obj.ParentDatabase, obj);
 				var rawText = sync.GetRawCreateText(true);
 				sb.AppendLine(rawText);
 				sb.AppendLine("GO\r\n\r\n");

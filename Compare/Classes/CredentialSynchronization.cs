@@ -11,7 +11,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class CredentialSynchronization : DatabaseObjectSynchronizationBase<Credential>
 	{
-		public CredentialSynchronization(Credential credential) : base(credential)
+		public CredentialSynchronization(Database targetDatabase, Credential credential) : base(targetDatabase, credential)
 		{
 		}
 

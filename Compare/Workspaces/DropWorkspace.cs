@@ -21,9 +21,9 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 		}
 
 		public DropWorkspace(DatabaseObjectBase dbObject)
-			: base(dbObject)
+			: base(dbObject.ParentDatabase, dbObject)
 		{
-			var sync = DatabaseObjectSynchronizationBase.GetSynchronization(dbObject);
+			var sync = DatabaseObjectSynchronizationBase.GetSynchronization(dbObject.ParentDatabase, dbObject);
 			SynchronizationItems.AddRange(sync.GetDropItems());
 		}
 

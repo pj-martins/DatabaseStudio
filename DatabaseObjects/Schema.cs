@@ -28,7 +28,19 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public string SchemaName { get; set; }
 		public string SchemaOwner { get; set; }
-		public Database Database { get; set; }
+
+        public string MappedSchemaName
+        {
+            get
+            {
+                if (SchemaName == ParentDatabase.DefaultSchemaName)
+                    return "__DEFAULT__";
+                return SchemaName;
+            }
+        }
+
+        private Database _database;
+        public override Database ParentDatabase => _database;
 
 		public Schema()
 		{
@@ -40,11 +52,27 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public static void PopulateSchemas(Database database, DbConnection connection, List<ExtendedProperty> extendedProperties)
 		{
 			database.Schemas.Clear();
-			string qry = database.Is2000OrLess || database.DriverType != typeof(SqlConnection) ? @"select distinct TABLE_SCHEMA as SchemaName, TABLE_SCHEMA as SchemaOwner from INFORMATION_SCHEMA.TABLES" :
+
+            if (database.IsSQLite)
+            {
+                var schema = new Schema()
+                {
+                    _database = database,
+                    SchemaName = "Default"
+                };
+                database.Schemas.Add(schema);
+                return;
+            }
+
+
+			string qry = database.Is2000OrLess || database.ConnectionType != typeof(SqlConnection) ? @"select distinct TABLE_SCHEMA as SchemaName, TABLE_SCHEMA as SchemaOwner from INFORMATION_SCHEMA.TABLES" :
 				@"select s.name as SchemaName, p.name as SchemaOwner
 				 from sys.schemas s
 				join sys.database_principals p on p.principal_id = s.principal_id
 ";
+
+            if (database.IsPostgreSQL)
+                qry += " where table_schema <> 'pg_catalog' and table_schema <> 'information_schema'";
 
 			using (var cmd = connection.CreateCommand())
 			{
@@ -59,7 +87,7 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 							schema.ExtendedProperties = extendedProperties
 								.Where(ep => ep.Level1Type == typeof(Schema).Name.ToUpper() && ep.Level1Object == schema.SchemaName)
 								.ToList();
-							schema.Database = database;
+							schema._database = database;
 							var owner = database.Principals.FirstOrDefault(p => schema.SchemaOwner == p.ObjectName);
 							if (owner != null)
 								owner.Ownings.Add(schema);

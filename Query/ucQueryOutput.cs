@@ -25,7 +25,7 @@ namespace PaJaMa.DatabaseStudio.Query
 		public DbConnection _currentConnection;
 		private DbCommand _currentCommand;
 		private string _query;
-		private bool _somethingPrinted;
+		private bool _somethingPrinted = false;
 
 		public ucQueryOutput()
 		{

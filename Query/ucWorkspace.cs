@@ -499,7 +499,7 @@ namespace PaJaMa.DatabaseStudio.Query
 				var obj = treeTables.SelectedNode.Tag as DatabaseObjectBase;
 				if (obj != null)
 				{
-					uc.PopulateScript(DatabaseObjectSynchronizationBase.GetSynchronization(obj).GetRawCreateText(), treeTables.SelectedNode);
+					uc.PopulateScript(DatabaseObjectSynchronizationBase.GetSynchronization(obj.ParentDatabase, obj).GetRawCreateText(), treeTables.SelectedNode);
 				}
 			}
 		}

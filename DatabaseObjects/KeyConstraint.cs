@@ -25,13 +25,18 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public string ClusteredNonClustered { get; set; }
 		public bool IsPrimaryKey { get; set; }
 
-		public KeyConstraint()
+        public override Database ParentDatabase => Table.ParentDatabase;
+
+        public KeyConstraint()
 		{
 			Columns = new List<IndexColumn>();
 		}
 
 		public static void PopulateKeys(Database database, DbConnection connection)
 		{
+            // TODO:
+            if (database.IsSQLite) return;
+
 			var constraints = new List<KeyConstraint>();
 
             string qry = string.Empty;
@@ -60,7 +65,7 @@ join sys.columns c on c.column_id = ic.column_id and c.object_id = ic.object_id
 join sys.indexes i on i.index_id = ic.index_id and i.object_id = ic.object_id
 ";
             }
-            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            else if (database.IsPostgreSQL)
             {
                 qry = @"
 select ku.CONSTRAINT_NAME as ConstraintName, COLUMN_NAME as ColumnName, ORDINAL_POSITION as Ordinal, 

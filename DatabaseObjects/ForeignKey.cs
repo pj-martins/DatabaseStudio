@@ -9,36 +9,70 @@ using System.Threading.Tasks;
 
 namespace PaJaMa.DatabaseStudio.DatabaseObjects
 {
-	public class ForeignKey : DatabaseObjectBase
-	{
-		public override string ObjectName
-		{
-			get { return ForeignKeyName; }
-		}
+    public class ForeignKey : DatabaseObjectBase
+    {
+        public override string ObjectName
+        {
+            get { return ForeignKeyName; }
+        }
 
-		public string ForeignKeyName { get; set; }
-		public Table ChildTable { get; set; }
-		public Table ParentTable { get; set; }
+        public string ForeignKeyName { get; set; }
+        public Table ChildTable { get; set; }
+        public Table ParentTable { get; set; }
 
-		[Ignore]
-		public List<ForeignKeyColumn> Columns { get; set; }
-		public string UpdateRule { get; set; }
-		public string DeleteRule { get; set; }
-		public string WithCheck { get; set; }
+        [Ignore]
+        public List<ForeignKeyColumn> Columns { get; set; }
+        public string UpdateRule { get; set; }
+        public string DeleteRule { get; set; }
+        public string WithCheck { get; set; }
 
-		[Ignore]
-		public bool HasBeenDropped { get; set; }
+        [Ignore]
+        public bool HasBeenDropped { get; set; }
 
-		public ForeignKey()
-		{
-			Columns = new List<ForeignKeyColumn>();
-		}
+        public override Database ParentDatabase => (ParentTable ?? ChildTable).ParentDatabase;
 
-		public static void PopulateKeys(Database database, DbConnection connection)
-		{
-			var foreignKeys = new List<ForeignKey>();
+        public ForeignKey()
+        {
+            Columns = new List<ForeignKeyColumn>();
+        }
 
+        public static void PopulateKeys(Database database, DbConnection connection)
+        {
+            var foreignKeys = new List<ForeignKey>();
             string foreignKeyQuery = string.Empty;
+
+            if (database.IsSQLite)
+            {
+                using (var cmd = connection.CreateCommand())
+                {
+                    foreach (var tbl in database.Schemas.First().Tables)
+                    {
+                        cmd.CommandText = $"pragma foreign_key_list({tbl.TableName})";
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            if (rdr.HasRows)
+                            {
+                                while (rdr.Read())
+                                {
+                                    var foreignKey = new ForeignKey();
+                                    foreignKey.ParentTable = tbl.Schema.Tables.First(t => t.TableName == rdr["table"].ToString());
+                                    foreignKey.ChildTable = tbl;
+                                    foreignKey.ChildTable.ForeignKeys.Add(foreignKey);
+                                    foreignKeys.Add(foreignKey);
+
+                                    foreignKey.Columns.Add(new ForeignKeyColumn()
+                                    {
+                                        ParentColumn = foreignKey.ParentTable.Columns.First(c => c.ColumnName == rdr["to"].ToString()),
+                                        ChildColumn = foreignKey.ChildTable.Columns.First(c => c.ColumnName == rdr["from"].ToString())
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+
             if (connection is SqlConnection)
             {
                 foreignKeyQuery = database.Is2000OrLess ? @"
@@ -75,7 +109,7 @@ join sys.all_columns pc on pc.object_id = fkc.referenced_object_id
 join sys.schemas cs on cs.schema_id = ct.schema_id
 join sys.schemas ps on ps.schema_id = pt.schema_id";
             }
-            else if (connection.GetType().Name.ToLower().Contains("npgsql"))
+            else if (database.IsPostgreSQL)
             {
                 foreignKeyQuery = @"
 SELECT
@@ -96,48 +130,48 @@ WHERE constraint_type = 'FOREIGN KEY'
             else
                 throw new NotImplementedException();
 
-			using (var fromCmd = connection.CreateCommand())
-			{
-				fromCmd.CommandText = foreignKeyQuery;
+            using (var fromCmd = connection.CreateCommand())
+            {
+                fromCmd.CommandText = foreignKeyQuery;
 
-				using (var rdr = fromCmd.ExecuteReader())
-				{
-					if (rdr.HasRows)
-					{
-						while (rdr.Read())
-						{
-							var foreignKeyName = rdr["ForeignKeyName"].ToString();
-							var childTableName = rdr["ChildTableName"].ToString();
-							var parentSchema = database.Schemas.First(s => s.SchemaName == rdr["ParentTableSchema"].ToString());
-							var childSchema = database.Schemas.First(s => s.SchemaName == rdr["ChildTableSchema"].ToString());
-							var foreignKey = foreignKeys.FirstOrDefault(f => f.ForeignKeyName == foreignKeyName && f.ChildTable.TableName == childTableName
-								&& f.ChildTable.Schema.SchemaName == childSchema.SchemaName);
+                using (var rdr = fromCmd.ExecuteReader())
+                {
+                    if (rdr.HasRows)
+                    {
+                        while (rdr.Read())
+                        {
+                            var foreignKeyName = rdr["ForeignKeyName"].ToString();
+                            var childTableName = rdr["ChildTableName"].ToString();
+                            var parentSchema = database.Schemas.First(s => s.SchemaName == rdr["ParentTableSchema"].ToString());
+                            var childSchema = database.Schemas.First(s => s.SchemaName == rdr["ChildTableSchema"].ToString());
+                            var foreignKey = foreignKeys.FirstOrDefault(f => f.ForeignKeyName == foreignKeyName && f.ChildTable.TableName == childTableName
+                                && f.ChildTable.Schema.SchemaName == childSchema.SchemaName);
 
-							if (foreignKey == null)
-							{
-								foreignKey = rdr.ToObject<ForeignKey>();
-								foreignKey.ParentTable = parentSchema.Tables.First(t => t.TableName == rdr["ParentTableName"].ToString());
-								foreignKey.ChildTable = childSchema.Tables.First(t => t.TableName == rdr["ChildTableName"].ToString());
-								foreignKey.ChildTable.ForeignKeys.Add(foreignKey);
-								foreignKeys.Add(foreignKey);
-							}
+                            if (foreignKey == null)
+                            {
+                                foreignKey = rdr.ToObject<ForeignKey>();
+                                foreignKey.ParentTable = parentSchema.Tables.First(t => t.TableName == rdr["ParentTableName"].ToString());
+                                foreignKey.ChildTable = childSchema.Tables.First(t => t.TableName == rdr["ChildTableName"].ToString());
+                                foreignKey.ChildTable.ForeignKeys.Add(foreignKey);
+                                foreignKeys.Add(foreignKey);
+                            }
 
-							foreignKey.Columns.Add(new ForeignKeyColumn()
-								{
-									ParentColumn = foreignKey.ParentTable.Columns.First(c => c.ColumnName == rdr["ParentColumnName"].ToString()),
-									ChildColumn = foreignKey.ChildTable.Columns.First(c => c.ColumnName == rdr["ChildColumnName"].ToString())
-								});
-						}
-					}
-					rdr.Close();
-				}
-			}
-		}
-	}
+                            foreignKey.Columns.Add(new ForeignKeyColumn()
+                            {
+                                ParentColumn = foreignKey.ParentTable.Columns.First(c => c.ColumnName == rdr["ParentColumnName"].ToString()),
+                                ChildColumn = foreignKey.ChildTable.Columns.First(c => c.ColumnName == rdr["ChildColumnName"].ToString())
+                            });
+                        }
+                    }
+                    rdr.Close();
+                }
+            }
+        }
+    }
 
-	public class ForeignKeyColumn
-	{
-		public Column ChildColumn { get; set; }
-		public Column ParentColumn { get; set; }
-	}
+    public class ForeignKeyColumn
+    {
+        public Column ChildColumn { get; set; }
+        public Column ParentColumn { get; set; }
+    }
 }

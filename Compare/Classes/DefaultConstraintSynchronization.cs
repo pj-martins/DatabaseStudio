@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class DefaultConstraintSynchronization : DatabaseObjectSynchronizationBase<DefaultConstraint>
 	{
-		public DefaultConstraintSynchronization(DefaultConstraint constraint)
-			: base(constraint)
+		public DefaultConstraintSynchronization(Database targetDatabase, DefaultConstraint constraint)
+			: base(targetDatabase, constraint)
 		{
 		}
 

@@ -21,7 +21,7 @@ namespace PaJaMa.DatabaseStudio.Search
 
 		public void Init(BackgroundWorker worker)
 		{
-			Database = new Database(Database.DriverType, Database.ConnectionString);
+			Database = new Database(Database.ConnectionType, Database.ConnectionString);
 			Database.PopulateChildren(true, worker);
 		}
 
@@ -34,9 +34,8 @@ namespace PaJaMa.DatabaseStudio.Search
 							   group c by c.Column.Table into g
 							   select g;
 
-			using (var conn = Activator.CreateInstance(Database.DriverType) as DbConnection)
+			using (var conn = Database.GetConnection())
 			{
-                conn.ConnectionString = Database.ConnectionString;
 				conn.Open();
 				using (var cmd = conn.CreateCommand())
 				{

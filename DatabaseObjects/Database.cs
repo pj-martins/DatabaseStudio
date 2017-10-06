@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,19 +21,54 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public List<Credential> Credentials { get; private set; }
 		public string ConnectionString { get; private set; }
 		public bool Is2000OrLess { get; private set; }
-        public Type DriverType { get; private set; }
+        public Type ConnectionType { get; private set; }
+        public bool IsPostgreSQL
+        {
+            get { return ConnectionType.Name.ToLower().Contains("npgsql"); }
+        }
 
-		public Database(Type driverType, string connectionString)
+        public bool IsSQLite
+        {
+            get { return ConnectionType.Name.ToLower().Contains("sqlite"); }
+        }
+
+        public bool IsSQLServer
+        {
+            get { return ConnectionType == typeof(SqlConnection); }
+        }
+
+        public string DefaultSchemaName
+        {
+            get
+            {
+                if (IsSQLServer)
+                    return "dbo";
+                if (IsPostgreSQL)
+                    return "public";
+                return string.Empty;
+            }
+        }
+
+        public DbConnection GetConnection()
+        {
+            var conn = Activator.CreateInstance(ConnectionType) as DbConnection;
+            conn.ConnectionString = ConnectionString;
+            return conn;
+        }
+
+        public Database(Type connectionType, string connectionString)
 		{
-			Schemas = new List<Schema>();
+            ConnectionType = connectionType;
+            ConnectionString = connectionString;
+
+            Schemas = new List<Schema>();
 			ServerLogins = new List<ServerLogin>();
 			Principals = new List<DatabasePrincipal>();
 			Permissions = new List<Permission>();
 			Credentials = new List<Credential>();
 
-            using (var conn = Activator.CreateInstance(driverType) as DbConnection)
+            using (var conn = GetConnection())
 			{
-                conn.ConnectionString = connectionString;
 				conn.Open();
 				var parts = conn.ServerVersion.Split('.');
 				if (Convert.ToInt16(parts[0]) <= 8)
@@ -41,14 +77,11 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 				DataSource = conn.DataSource;
 				conn.Close();
 			}
-
-            DriverType = driverType;
-			ConnectionString = connectionString;
 		}
 
 		public void PopulateChildren(bool condensed, BackgroundWorker worker)
 		{
-			using (var conn = Activator.CreateInstance(DriverType) as DbConnection)
+			using (var conn = Activator.CreateInstance(ConnectionType) as DbConnection)
 			{
                 conn.ConnectionString = ConnectionString;
 				conn.Open();
@@ -82,7 +115,7 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public void ChangeDatabase(string newDatabase)
 		{
-            if (DriverType == typeof(System.Data.SqlClient.SqlConnection))
+            if (ConnectionType == typeof(System.Data.SqlClient.SqlConnection))
             {
                 var connBuilder = new System.Data.SqlClient.SqlConnectionStringBuilder(ConnectionString);
 			connBuilder.InitialCatalog = newDatabase;

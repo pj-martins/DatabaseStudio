@@ -25,7 +25,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 		public string Source { get { return SourceObject.ToString(); } }
 		public string Target { get { return TargetObject == null ? string.Empty : TargetObject.ToString(); } }
 
-		public ObjectWorkspace(CompareHelper compareHelper, DatabaseObjectBase sourceObject, DatabaseObjectBase targetObject) : base(sourceObject, targetObject)
+		public ObjectWorkspace(CompareHelper compareHelper, DatabaseObjectBase sourceObject, Database targetDatabase, DatabaseObjectBase targetObject) 
+            : base(sourceObject, targetDatabase, targetObject)
 		{
 		}
 
@@ -75,7 +76,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 				DatabaseObjectBase sourceDef = def;
 				DatabaseObjectBase targetDef = toObjs.FirstOrDefault(t =>
 					t.ToString() == def.ToString() && t.ObjectType == def.ObjectType);
-				lst.Workspaces.Add(new ObjectWorkspace(compareHelper, sourceDef, targetDef));
+				lst.Workspaces.Add(new ObjectWorkspace(compareHelper, sourceDef, compareHelper.ToDatabase, targetDef));
 			}
 
 

@@ -24,7 +24,7 @@ namespace PaJaMa.DatabaseStudio.DataGenerate.Helper
 
 		public void Init(BackgroundWorker worker)
 		{
-			Database = new Database(Database.DriverType, Database.ConnectionString);
+			Database = new Database(Database.ConnectionType, Database.ConnectionString);
 			Database.PopulateChildren(true, worker);
 		}
 

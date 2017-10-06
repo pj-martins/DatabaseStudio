@@ -34,8 +34,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
 
         public void Init(BackgroundWorker worker)
         {
-			FromDatabase = new Database(FromDatabase.DriverType, FromDatabase.ConnectionString);
-			ToDatabase = new Database(ToDatabase.DriverType, ToDatabase.ConnectionString);
+			FromDatabase = new Database(FromDatabase.ConnectionType, FromDatabase.ConnectionString);
+			ToDatabase = new Database(ToDatabase.ConnectionType, ToDatabase.ConnectionString);
             FromDatabase.PopulateChildren(false, worker);
             ToDatabase.PopulateChildren(false, worker);
         }
@@ -213,7 +213,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
                                 where !si.Omit
                                 select si;
 
-            var sync = DatabaseObjectSynchronizationBase.GetSynchronization(parent);
+            var sync = DatabaseObjectSynchronizationBase.GetSynchronization(parent.ParentDatabase, parent);
 
             var missingDendencies = sync.GetMissingDependencies(toObjects, selectedItems.ToList(), isForDrop);
             foreach (var child in missingDendencies)

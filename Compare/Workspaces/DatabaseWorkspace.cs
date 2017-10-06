@@ -8,7 +8,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Workspaces
 {
 	public class DatabaseWorkspace : WorkspaceWithSourceBase
 	{
-		public DatabaseWorkspace(DatabaseObjectBase sourceObject, DatabaseObjectBase targetObject) : base(sourceObject, targetObject)
+		public DatabaseWorkspace(DatabaseObjectBase sourceObject, Database targetDatabase, DatabaseObjectBase targetObject) 
+            : base(sourceObject, targetDatabase, targetObject)
 		{
 		}
 	}

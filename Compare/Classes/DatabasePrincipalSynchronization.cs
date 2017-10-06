@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class DatabasePrincipalSynchronization : DatabaseObjectSynchronizationBase<DatabasePrincipal>
 	{
-		public DatabasePrincipalSynchronization(DatabasePrincipal principal)
-			: base(principal)
+		public DatabasePrincipalSynchronization(Database targetDatabase, DatabasePrincipal principal)
+			: base(targetDatabase, principal)
 		{
 		}
 
@@ -204,7 +204,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 
 				if (!string.IsNullOrEmpty(databaseObject.LoginName))
 				{
-					var slogin = databaseObject.Database.ServerLogins.FirstOrDefault(l => l.LoginName == databaseObject.LoginName);
+					var slogin = databaseObject.ParentDatabase.ServerLogins.FirstOrDefault(l => l.LoginName == databaseObject.LoginName);
 					if (slogin != null)
 						checks.Add(slogin);
 				}

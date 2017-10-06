@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class KeyConstraintSynchronization : DatabaseObjectSynchronizationBase<KeyConstraint>
 	{
-		public KeyConstraintSynchronization(KeyConstraint constraint)
-			: base(constraint)
+		public KeyConstraintSynchronization(Database targetDatabase, KeyConstraint constraint)
+			: base(targetDatabase, constraint)
 		{
 		}
 
@@ -49,7 +49,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 								select fk;
 				foreach (var childKey in childKeys)
 				{
-					var childSync = new ForeignKeySynchronization(childKey);
+					var childSync = new ForeignKeySynchronization(targetDatabase, childKey);
 					var item = new SynchronizationItem(childKey);
 					foreach (var dropItem in childSync.GetDropItems())
 					{

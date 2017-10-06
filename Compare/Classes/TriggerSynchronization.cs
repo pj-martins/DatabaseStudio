@@ -11,8 +11,8 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 {
 	public class TriggerSynchronization : DatabaseObjectSynchronizationBase<Trigger>
 	{
-		public TriggerSynchronization(Trigger trigger)
-			: base(trigger)
+		public TriggerSynchronization(Database targetDatabase, Trigger trigger)
+			: base(targetDatabase, trigger)
 		{
 		}
 
@@ -44,7 +44,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Classes
 			if (target == null)
 				return base.GetSynchronizationItems(target);
 
-			if (GetRawCreateText().ToLower() == new TriggerSynchronization(target as Trigger).GetRawCreateText().ToLower()) return new List<SynchronizationItem>();
+			if (GetRawCreateText().ToLower() == new TriggerSynchronization(targetDatabase, target as Trigger).GetRawCreateText().ToLower()) return new List<SynchronizationItem>();
 
 			var targetTrigger = target as Trigger;
 

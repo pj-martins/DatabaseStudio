@@ -8,6 +8,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PaJaMa.DatabaseStudio.Classes;
 
 namespace PaJaMa.DatabaseStudio.DatabaseObjects
 {
@@ -17,12 +18,22 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public abstract string ObjectName { get; }
 
-		public string Description
+        public abstract Database ParentDatabase { get; }
+
+        [IgnoreCase]
+        public string Definition { get; set; }
+
+        public string Description
 		{
 			get { return ToString() + " (" + ObjectType + ")"; }
 		}
 
-		public virtual string ObjectType
+        public string QueryObjectName
+        {
+            get { return DriverHelper.GetConvertedObjectName(ParentDatabase, ObjectName); }
+        }
+
+        public virtual string ObjectType
 		{
 			get { return this.GetType().Name; }
 		}

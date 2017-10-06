@@ -16,7 +16,8 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public string PermissionName { get; set; }
 		public List<PermissionPrincipal> PermissionPrincipals { get; set; }
 
-		public Database Database { get; set; }
+        public Database Database { get; set; }
+        public override Database ParentDatabase => Database;
 
 		public override string ObjectName
 		{
@@ -32,9 +33,17 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		{
 			// TODO: 2000 or less
 			if (database.Is2000OrLess)
-				return; 
-			
-			string qry = @"select s.name as SchemaName, s2.name as PermissionSchemaName,
+				return;
+
+            // TODO:
+            if (database.IsPostgreSQL)
+                return;
+
+            // TODO:
+            if (database.IsSQLite) return;
+
+
+            string qry = @"select s.name as SchemaName, s2.name as PermissionSchemaName,
 					coalesce(s2.name, o.name) as PermissionName, state_desc as GrantType, 
 					permission_name as PermissionType, class_desc as PermissionType, pr.Name as PrincipalName
 				from sys.database_permissions p

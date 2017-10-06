@@ -30,6 +30,11 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 			get { return (string.IsNullOrEmpty(Level2Object) ? string.Empty : Level2Object + ".") + PropName; }
 		}
 
+        public override Database ParentDatabase
+        {
+            get { return null; }
+        }
+
 		//public override string ObjectType
 		//{
 		//	get { return "Exten; }

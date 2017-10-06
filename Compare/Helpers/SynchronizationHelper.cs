@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -18,9 +19,9 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
 			TransferHelper transferHelper = null;
 			if (dataSpaces.Any())
 				transferHelper = new TransferHelper(worker);
-			using (var conn = new SqlConnection(compareHelper.ToDatabase.ConnectionString))
-			{
-				conn.Open();
+            using (var conn = compareHelper.ToDatabase.GetConnection())
+ 			{
+                conn.Open();
 				using (var trans = conn.BeginTransaction())
 				{
 					int i = 0;
@@ -88,7 +89,7 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
 						return false;
 					}
 
-					if (dataSpaces.Any() && !transferHelper.Transfer(dataSpaces, trans, compareHelper.FromDatabase.ConnectionString))
+					if (dataSpaces.Any() && !transferHelper.Transfer(dataSpaces, trans, compareHelper.FromDatabase))
 					{
 						trans.Rollback();
 						return false;
@@ -132,7 +133,6 @@ namespace PaJaMa.DatabaseStudio.Compare.Helpers
 					trans.Commit();
 				}
 				conn.Close();
-				SqlConnection.ClearPool(conn);
 			}
 
 			return true;

@@ -32,7 +32,11 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 		public DatabasePrincipal Owner { get; set; }
 		public AuthenticationType AuthenticationType { get; set; }
 
-		public Database Database { get; set; }
+        private Database _database;
+		public override Database ParentDatabase
+        {
+            get { return _database; }
+        }
 
 		public string OwnerName
 		{
@@ -52,7 +56,16 @@ namespace PaJaMa.DatabaseStudio.DatabaseObjects
 
 		public static void PopulatePrincipals(Database database, DbConnection connection, List<ExtendedProperty> extendedProperties)
 		{
-			string qry = database.Is2000OrLess ? @"
+            // TODO:
+            if (database.IsPostgreSQL)
+                return;
+
+            // TODO:
+            if (database.IsSQLite) return;
+
+
+
+            string qry = database.Is2000OrLess ? @"
 select uid as PrincipalID, altuid as OwningPrincipalID, name as PrincipalName, 
 	PrincipalType = case when issqlrole = 1 then 'DATABASEROLE', convert(bit, 0) as IsFixedRole
 	when isntuser = 1 then 'WINDOWSUSER'
@@ -99,7 +112,7 @@ left join sys.server_principals sp on sp.sid = dp.sid
 								}
 							}
 
-							princ.Database = database;
+							princ._database = database;
 							if (string.IsNullOrEmpty(princ.DefaultSchema))
 								princ.DefaultSchema = "dbo";
 							database.Principals.Add(princ);
